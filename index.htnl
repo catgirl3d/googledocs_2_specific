@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Очистка HTML из Google Docs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        textarea {
+            resize: vertical;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Конвертер HTML из Google Docs</h1>
+            <p class="text-gray-600 mt-2">Просто скопируйте текст из Google Docs и вставьте его в левое поле.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Поле для ввода "грязного" HTML -->
+            <div>
+                <label for="dirtyHtml" class="block text-sm font-medium text-gray-700 mb-2">Исходный HTML (вставьте сюда):</label>
+                <textarea id="dirtyHtml" rows="15" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="Скопируйте текст из Google Docs и вставьте сюда..."></textarea>
+            </div>
+            <!-- Поле для вывода "чистого" HTML -->
+            <div>
+                <label for="cleanHtml" class="block text-sm font-medium text-gray-700 mb-2">Чистый HTML:</label>
+                <textarea id="cleanHtml" rows="15" readonly class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="Здесь появится результат..."></textarea>
+            </div>
+        </div>
+
+        <!-- Кнопки управления -->
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button id="convertBtn" class="w-full sm:w-auto bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200">
+                Преобразовать
+            </button>
+            <button id="copyBtn" class="w-full sm:w-auto bg-gray-200 text-gray-700 font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-200">
+                Копировать результат
+            </button>
+        </div>
+        <div id="copy-success" class="text-center text-green-600 font-medium mt-4 h-5"></div>
+    </div>
+
+    <script>
+        // --- Основная функция для очистки HTML ---
+        function cleanGoogleDocsHtml(dirtyHtml) {
+            // 0. Извлекаем содержимое тега <body>, если оно есть
+            const bodyMatch = dirtyHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+            let content = bodyMatch ? bodyMatch[1] : dirtyHtml;
+
+            // NEW: Удаляем метаданные, которые Google Docs добавляет в начало
+            content = content.replace(/<!--StartFragment-->/gi, '');
+            content = content.replace(/<meta[^>]*>/gi, '');
+
+            // 1. Заменяем span с курсивом на <em>
+            let cleanedHtml = content.replace(/<span[^>]*font-style:\s*italic[^>]*>(.*?)<\/span>/gis, '<em>$1</em>');
+
+            // 2. Заменяем span с жирным шрифтом на <strong>
+            cleanedHtml = cleanedHtml.replace(/<span[^>]*font-weight:\s*(bold|700)[^>]*>(.*?)<\/span>/gis, '<strong>$2</strong>');
+
+            // 3. Удаляем все оставшиеся теги <span> и </span>
+            cleanedHtml = cleanedHtml.replace(/<\/?span[^>]*>/gi, '');
+
+            // 4. Удаляем открывающие теги <p> со всеми атрибутами
+            cleanedHtml = cleanedHtml.replace(/<p[^>]*>/gi, '');
+
+            // 5. Заменяем закрывающие теги </p> на двойной перенос строки
+            cleanedHtml = cleanedHtml.replace(/<\/p>/gi, '<br><br>');
+
+            // 6. Заменяем спецсимвол неразрывного пробела на обычный
+            cleanedHtml = cleanedHtml.replace(/&nbsp;/g, ' ');
+
+            // 7. Убираем лишние пробелы и переносы в начале и в конце всего текста
+            cleanedHtml = cleanedHtml.trim();
+
+            // 8. Удаляем теги <br>, которые могли остаться в самом конце после всех замен
+            cleanedHtml = cleanedHtml.replace(/(<br>\s*)+$/gi, '');
+            
+            // 9. Очищаем лишние пробелы рядом с тегами <br> для аккуратного вида
+            cleanedHtml = cleanedHtml.replace(/\s*<br>\s*/gi, '<br>');
+
+            return cleanedHtml;
+        }
+
+        // --- Логика работы интерфейса ---
+        const convertBtn = document.getElementById('convertBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const dirtyHtmlTextarea = document.getElementById('dirtyHtml');
+        const cleanHtmlTextarea = document.getElementById('cleanHtml');
+        const copySuccessMessage = document.getElementById('copy-success');
+
+        // --- Перехват вставки из буфера обмена ---
+        dirtyHtmlTextarea.addEventListener('paste', (event) => {
+            event.preventDefault();
+            const pastedHtml = (event.clipboardData || window.clipboardData).getData('text/html');
+            
+            if (pastedHtml) {
+                dirtyHtmlTextarea.value = pastedHtml;
+                convertBtn.click(); 
+            } else {
+                const pastedText = (event.clipboardData || window.clipboardData).getData('text/plain');
+                dirtyHtmlTextarea.value = pastedText;
+            }
+        });
+
+        // Обработчик нажатия на кнопку "Преобразовать"
+        convertBtn.addEventListener('click', () => {
+            const dirtyHtml = dirtyHtmlTextarea.value;
+            const cleanedResult = cleanGoogleDocsHtml(dirtyHtml);
+            cleanHtmlTextarea.value = cleanedResult;
+            copySuccessMessage.textContent = '';
+        });
+
+        // Обработчик нажатия на кнопку "Копировать"
+        copyBtn.addEventListener('click', () => {
+            const textToCopy = cleanHtmlTextarea.value;
+            if (textToCopy) {
+                cleanHtmlTextarea.select();
+                document.execCommand('copy');
+                
+                copySuccessMessage.textContent = 'Скопировано!';
+                setTimeout(() => {
+                    copySuccessMessage.textContent = '';
+                }, 2000);
+            } else {
+                copySuccessMessage.textContent = 'Нечего копировать!';
+                 setTimeout(() => {
+                    copySuccessMessage.textContent = '';
+                }, 2000);
+            }
+        });
+        
+    </script>
+</body>
+</html>
