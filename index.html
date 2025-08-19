@@ -55,8 +55,9 @@
             const bodyMatch = dirtyHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
             let content = bodyMatch ? bodyMatch[1] : dirtyHtml;
 
-            // NEW: Удаляем метаданные, которые Google Docs добавляет в начало
+            // NEW: Удаляем метаданные и комментарии, которые Google Docs добавляет в начало и конец
             content = content.replace(/<!--StartFragment-->/gi, '');
+            content = content.replace(/<!--EndFragment-->/gi, '');
             content = content.replace(/<meta[^>]*>/gi, '');
 
             // 1. Заменяем span с курсивом на <em>
