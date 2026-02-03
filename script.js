@@ -22,14 +22,15 @@ export class GoogleDocsCleaner {
     /**
      * Основной метод очистки
      * @param {string} dirtyHtml 
+     * @param {Object} options
      * @returns {string}
      */
-    static clean(dirtyHtml) {
+    static clean(dirtyHtml, options = {}) {
         let content = this._extractBody(dirtyHtml);
         content = this._removeMetadata(content);
         
         let cleaned = this._convertSemanticTags(content);
-        cleaned = this._removeWrappers(cleaned);
+        cleaned = this._removeWrappers(cleaned, options.keepSpans);
         cleaned = this._stripAttributes(cleaned);
         cleaned = this._flattenParagraphs(cleaned);
         cleaned = this._finalCleanup(cleaned);
@@ -52,8 +53,9 @@ export class GoogleDocsCleaner {
             .replace(REGEX.SPAN_BOLD, '<strong>$2</strong>');
     }
 
-    static _removeWrappers(html) {
-        return html.replace(REGEX.WRAPPERS, '');
+    static _removeWrappers(html, keepSpans = false) {
+        const pattern = keepSpans ? /<\/?(div|section|article)[^>]*>/gi : REGEX.WRAPPERS;
+        return html.replace(pattern, '');
     }
 
     static _stripAttributes(html) {
@@ -97,7 +99,8 @@ class App {
             copyBtn: document.getElementById('copyBtn'),
             dirtyHtml: document.getElementById('dirtyHtml'),
             cleanHtml: document.getElementById('cleanHtml'),
-            copySuccess: document.getElementById('copy-success')
+            copySuccess: document.getElementById('copy-success'),
+            keepSpans: document.getElementById('keepSpans')
         };
         
         if (this._validateElements()) {
@@ -117,7 +120,10 @@ class App {
 
     handleConvert() {
         const dirty = this.elements.dirtyHtml.value;
-        this.elements.cleanHtml.value = GoogleDocsCleaner.clean(dirty);
+        const options = {
+            keepSpans: this.elements.keepSpans.checked
+        };
+        this.elements.cleanHtml.value = GoogleDocsCleaner.clean(dirty, options);
         this.elements.copySuccess.textContent = '';
     }
 
