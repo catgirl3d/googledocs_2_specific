@@ -69,26 +69,43 @@
             // 2. Заменяем span с жирным шрифтом на <strong>
             cleanedHtml = cleanedHtml.replace(/<span[^>]*font-weight:\s*(bold|700)[^>]*>(.*?)<\/span>/gis, '<strong>$2</strong>');
 
-            // 3. Удаляем все оставшиеся теги <span> и </span>
-            cleanedHtml = cleanedHtml.replace(/<\/?span[^>]*>/gi, '');
-
-            // 4. Удаляем открывающие теги <p> со всеми атрибутами
-            cleanedHtml = cleanedHtml.replace(/<p[^>]*>/gi, '');
-
-            // 5. Заменяем закрывающие теги </p> на двойной перенос строки
-            cleanedHtml = cleanedHtml.replace(/<\/p>/gi, '<br><br>');
-
-            // 6. Заменяем спецсимвол неразрывного пробела на обычный
-            cleanedHtml = cleanedHtml.replace(/&nbsp;/g, ' ');
-
-            // 7. Убираем лишние пробелы и переносы в начале и в конце всего текста
-            cleanedHtml = cleanedHtml.trim();
-
-            // 8. Удаляем теги <br>, которые могли остаться в самом конце после всех замен
-            cleanedHtml = cleanedHtml.replace(/(<br>\s*)+$/gi, '');
+                        // 3. Удаляем все оставшиеся теги <span>, <div> и другие обертки
+                        cleanedHtml = cleanedHtml.replace(/<\/?(span|div|section|article)[^>]*>/gi, '');
             
-            // 9. Очищаем лишние пробелы рядом с тегами <br> для аккуратного вида
-            cleanedHtml = cleanedHtml.replace(/\s*<br>\s*/gi, '<br>');
+                        // 4. Очищаем ВСЕ атрибуты у ВСЕХ оставшихся тегов, кроме <a> (href) и <img> (src)
+                        cleanedHtml = cleanedHtml.replace(/<([a-z1-6]+)\b[^>]*>/gi, (match, tagName) => {
+                            const tag = tagName.toLowerCase();
+                            if (tag === 'a') {
+                                const hrefMatch = match.match(/href=(["'])(.*?)\1/i);
+                                return hrefMatch ? `<a href="${hrefMatch[2]}">` : '<a>';
+                            }
+                            if (tag === 'img') {
+                                const srcMatch = match.match(/src=(["'])(.*?)\1/i);
+                                return srcMatch ? `<img src="${srcMatch[2]}">` : '<img>';
+                            }
+                            return `<${tag}>`;
+                        });
+            
+                        // 5. Удаляем открывающие теги <p> (они уже без атрибутов после шага 4)
+                        cleanedHtml = cleanedHtml.replace(/<p>/gi, '');
+            
+                        // 6. Заменяем закрывающие теги </p> на двойной перенос строки
+                        cleanedHtml = cleanedHtml.replace(/<\/p>/gi, '<br><br>');
+            
+                        // 7. Удаляем <br> перед закрывающим тегом списка (Google Docs часто их туда пихает)
+                        cleanedHtml = cleanedHtml.replace(/<br>\s*<\/li>/gi, '</li>');
+            
+                        // 8. Заменяем спецсимвол неразрывного пробела на обычный
+                        cleanedHtml = cleanedHtml.replace(/&nbsp;/g, ' ');
+            
+                        // 9. Убираем лишние пробелы и переносы в начале и в конце всего текста
+                        cleanedHtml = cleanedHtml.trim();
+            
+                        // 10. Удаляем теги <br>, которые могли остаться в самом конце после всех замен
+                        cleanedHtml = cleanedHtml.replace(/(<br>\s*)+$/gi, '');
+                        
+                        // 11. Очищаем лишние пробелы рядом с тегами <br> для аккуратного вида
+                        cleanedHtml = cleanedHtml.replace(/\s*<br>\s*/gi, '<br>');
 
             return cleanedHtml;
         }
