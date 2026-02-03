@@ -13,6 +13,8 @@ const REGEX = {
     P_OPEN: /<p>/gi,
     P_CLOSE: /<\/p>/gi,
     LIST_BR: /<br>\s*<\/li>/gi,
+        BLOCK_TAGS_BEFORE: /(<br>\s*)+(?=<ol|<ul|<h[1-6]|<blockquote|<hr|<table)/gi,
+        BLOCK_TAGS_AFTER: /(<\/ol>|<\/ul>|<\/h[1-6]>|<\/blockquote>|<\/table>|<hr>)\s*(<br>\s*)+/gi,
     NBSP: /&nbsp;/g,
     TRAILING_BR: /(<br>\s*)+$/gi,
     BR_SPACING: /\s*<br>\s*/gi
@@ -82,6 +84,8 @@ export class GoogleDocsCleaner {
     static _finalCleanup(html) {
         return html
             .replace(REGEX.LIST_BR, '</li>')
+            .replace(REGEX.BLOCK_TAGS_BEFORE, '')
+            .replace(REGEX.BLOCK_TAGS_AFTER, '$1')
             .replace(REGEX.NBSP, ' ')
             .trim()
             .replace(REGEX.TRAILING_BR, '')
