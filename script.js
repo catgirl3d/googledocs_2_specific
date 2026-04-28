@@ -6,8 +6,9 @@
 const REGEX = {
     BODY: /<body[^>]*>([\s\S]*)<\/body>/i,
     METADATA: /<!--StartFragment-->|<!--EndFragment-->|<meta[^>]*>/gi,
-    SPAN_ITALIC: /<span[^>]*font-style:\s*italic[^>]*>(.*?)<\/span>/gis,
-    SPAN_BOLD: /<span[^>]*font-weight:\s*(bold|700)[^>]*>(.*?)<\/span>/gis,
+    STYLED_SPAN: /<span\b([^>]*)>(.*?)<\/span>/gis,
+    STYLE_ATTRIBUTE: /style=(['"])(.*?)\1/i,
+    FONT_WEIGHT_BOLD: /font-weight:\s*(bold|700)\b/i,
     WRAPPERS: /<\/?(span|div|section|article)[^>]*>/gi,
     TAG_ATTRIBUTES: /<([a-z1-6]+)\b[^>]*>/gi,
     P_OPEN: /<p>/gi,
@@ -50,9 +51,30 @@ export class GoogleDocsCleaner {
     }
 
     static _convertSemanticTags(html) {
-        return html
-            .replace(REGEX.SPAN_ITALIC, '<em>$1</em>')
-            .replace(REGEX.SPAN_BOLD, '<strong>$2</strong>');
+        return html.replace(REGEX.STYLED_SPAN, (match, attributes, content) => {
+            const styleMatch = attributes.match(REGEX.STYLE_ATTRIBUTE);
+
+            if (!styleMatch) {
+                return match;
+            }
+
+            const style = styleMatch[2].toLowerCase();
+            let result = content;
+
+            if (style.includes('font-style:italic') || style.includes('font-style: italic')) {
+                result = `<em>${result}</em>`;
+            }
+
+            if (REGEX.FONT_WEIGHT_BOLD.test(style)) {
+                result = `<strong>${result}</strong>`;
+            }
+
+            if (style.includes('text-decoration:line-through') || style.includes('text-decoration: line-through')) {
+                result = `<s>${result}</s>`;
+            }
+
+            return result;
+        });
     }
 
     static _removeWrappers(html, keepSpans = false) {
