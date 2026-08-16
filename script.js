@@ -18,7 +18,9 @@ const REGEX = {
         BLOCK_TAGS_AFTER: /(<\/ol>|<\/ul>|<\/h[1-6]>|<\/blockquote>|<\/table>|<hr>)\s*(<br>\s*)+/gi,
     NBSP: /&nbsp;/g,
     TRAILING_BR: /(<br>\s*)+$/gi,
-    BR_SPACING: /\s*<br>\s*/gi
+    BR_SPACING: /\s*<br>\s*/gi,
+    CONSECUTIVE_BR: /(?:<br>){3,}/gi,
+    ADJACENT_STRONG: /<\/strong>(\s*)<strong>/gi
 };
 
 export class GoogleDocsCleaner {
@@ -111,7 +113,9 @@ export class GoogleDocsCleaner {
             .replace(REGEX.NBSP, ' ')
             .trim()
             .replace(REGEX.TRAILING_BR, '')
-            .replace(REGEX.BR_SPACING, '<br>');
+            .replace(REGEX.BR_SPACING, '<br>')
+            .replace(REGEX.CONSECUTIVE_BR, '<br><br>')
+            .replace(REGEX.ADJACENT_STRONG, '$1');
     }
 }
 
@@ -192,4 +196,6 @@ class App {
 }
 
 // Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => new App());
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => new App());
+}
