@@ -43,3 +43,21 @@ test('merges adjacent bold spans without adding a separator', () => {
         '<strong>Что будет:</strong>'
     );
 });
+
+test('removes an outer b wrapper while keeping inner strong formatting', () => {
+    const input = '<b><strong>Заголовок</strong><br><br>Обычный текст<br><br><strong>Акцент</strong></b>';
+
+    assert.equal(
+        GoogleDocsCleaner.clean(input),
+        '<strong>Заголовок</strong><br><br>Обычный текст<br><br><strong>Акцент</strong>'
+    );
+});
+
+test('removes an outer strong wrapper from the complete fragment', () => {
+    const input = '<strong>Весь текст<br><br>в одном выделении</strong>';
+
+    assert.equal(
+        GoogleDocsCleaner.clean(input),
+        'Весь текст<br><br>в одном выделении'
+    );
+});

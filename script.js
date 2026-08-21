@@ -20,7 +20,8 @@ const REGEX = {
     TRAILING_BR: /(<br>\s*)+$/gi,
     BR_SPACING: /\s*<br>\s*/gi,
     CONSECUTIVE_BR: /(?:<br>){3,}/gi,
-    ADJACENT_STRONG: /<\/strong>(\s*)<strong>/gi
+    ADJACENT_STRONG: /<\/strong>(\s*)<strong>/gi,
+    OUTER_BOLD_WRAPPER: /^\s*<(b|strong)\b[^>]*>([\s\S]*)<\/\1>\s*$/i
 };
 
 export class GoogleDocsCleaner {
@@ -33,6 +34,7 @@ export class GoogleDocsCleaner {
     static clean(dirtyHtml, options = {}) {
         let content = this._extractBody(dirtyHtml);
         content = this._removeMetadata(content);
+        content = this._removeOuterBoldWrapper(content);
         
         let cleaned = this._convertSemanticTags(content);
         cleaned = this._removeWrappers(cleaned, options.keepSpans);
@@ -50,6 +52,11 @@ export class GoogleDocsCleaner {
 
     static _removeMetadata(html) {
         return html.replace(REGEX.METADATA, '');
+    }
+
+    static _removeOuterBoldWrapper(html) {
+        const match = html.match(REGEX.OUTER_BOLD_WRAPPER);
+        return match ? match[2] : html;
     }
 
     static _convertSemanticTags(html) {
